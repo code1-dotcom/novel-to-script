@@ -1,5 +1,9 @@
 # AI 小说转剧本工具
 
+## 🎬 演示视频
+
+### **[【6月7日】AI小说转剧本工具演示](https://www.bilibili.com/video/BV1mwEb6uEMv?vd_source=1e0ca825b1ef2b1c1c5f38c2dd7fcb88)**
+
 将小说 `.txt` 文件转换为结构化 YAML 剧本，支持逐章 AI 生成与手动编辑。
 
 ## 功能特性
