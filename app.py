@@ -146,6 +146,11 @@ def render_page_upload():
 
     selected_keys: set[str] = set()
     total_chapter_count = 0
+    # 先收集已存在的选中状态（来自上一次渲染的 session state）
+    existing_selections = {
+        k: v for k, v in st.session_state.items()
+        if k.startswith("ch_select_") and v is True
+    }
 
     for file_idx, file_data in enumerate(chapters_data):
         file_name = file_data["file_name"]
@@ -167,11 +172,16 @@ def render_page_upload():
             for ch_idx, ch in enumerate(file_chapters):
                 ch_key = f"ch_select_{file_idx}_{ch_idx}"
                 label = f"{ch['raw_title'] or ch['title']}　({len(ch['content'])} 字)"
-
                 with cols[ch_idx % 2]:
-                    checked = st.checkbox(label, key=ch_key)
-                    if checked:
-                        selected_keys.add(f"{file_idx}:{ch_idx}")
+                    st.checkbox(label, key=ch_key)
+
+    # 渲染完成后，从 session_state 统一读取所有选中的章节
+    for key, val in st.session_state.items():
+        if key.startswith("ch_select_") and val is True:
+            parts = key.replace("ch_select_", "").split("_", 1)
+            if len(parts) == 2:
+                file_idx, ch_idx = parts[0], parts[1]
+                selected_keys.add(f"{file_idx}:{ch_idx}")
 
     wf["selected_chapter_keys"] = selected_keys
 
