@@ -1,248 +1,230 @@
 meta:
-  title: 《深渊代码》
-  author: ''
-  genre: 悬疑
+  title: test01
+  author: test
+  genre: ''
   version: '1.0'
-  source: AI 小说转剧本工具
+  source: AI 小说转剧本工具 v2.0
 characters:
 - id: char_001
-  name: 林锐
+  name: 沈曼
   role: protagonist
-  arc: 从自我放逐的前网警/独立黑客，被一封匿名包裹强行拽回尘封十年的创伤核心；由压抑隐忍、高度理性化的技术型幸存者，逐步蜕变为直面系统性罪恶、主动重燃调查意志的行动者。其弧光始于‘被动接收线索’，终于‘主动拨出电话重启调查’——不再回避‘未完成的守护者’身份。
+  arc: 从经验老到、掌控全局的资深公关总监，逐步进入与空降权威的权力博弈与专业尊严捍卫阶段；表面从容克制，内在高度警觉、自尊极强，其弧光始于‘被挑战’后的战略定力，将发展为在制度理性与人性张力间重构话语权的领导者。
   aliases:
-  - 林哥
+  - 沈总监
+  - 曼姐（隐含，由下属称呼推断）
 - id: char_002
-  name: 林晓
-  role: protagonist
-  arc: 虽全程未现身，但作为叙事麦高芬与精神向导，其弧线是‘从失语受害者到隐秘信息传递者’的逆转：通过预埋硬盘证据链（临床记录、音频日记、视频线索），完成跨越十年的主动求救与真相托付，将哥哥从‘寻找者’转化为‘执行者’。
-  aliases:
-  - 晓晓
-  - 073号
-- id: char_003
-  name: 方远征
+  name: 陆景深
   role: antagonist
-  arc: 从‘已死亡’的纸面结论，被林锐通过生物特征（左眼疤痕）与时间矛盾（尸体烧毁却留有清晰眼部特写）质疑为‘假死脱罪’；其弧线暗示系统性庇护网络的存在，是悬于全案之上的阴影巨兽。
-- id: char_004
+  arc: 从高势能空降者（象征总部意志与效率至上逻辑）逐步显露其并非单纯权力压制者，而是具备系统思维与观察力的变革推动者；其弧光在于打破‘外来者’刻板印象，从单向施压转向寻求结构性协作，但手段仍具压迫性与试探性。
+  aliases:
+  - 陆总
+  - 陆副总裁
+- id: char_003
   name: 老周
   role: supporting
-  arc: 从‘被动应答的旧日同事’，转变为林锐重启调查的关键技术支点；其两次沉默（查地址后、听闻方远征名字后）暗示其知晓更多体制内禁忌，角色功能正从工具人升格为潜在共谋者或知情警示者。
-- id: char_005
-  name: 307室女人
-  role: supporting
-  arc: 从‘可疑守门人’到‘关键信使’的转变；其递出纸条与提示‘缺一张照片’，表明她是林晓失踪案知情者甚至协助者，但自身处于被监视或胁迫状态，行动充满自保性矛盾。
+  arc: 作为中层管理者的典型代表，在新旧权力结构夹缝中谨慎站位；其角色功能是提供组织内部信息锚点与沈曼权威的佐证者，后续可能成为关键缓冲或情报节点。
   aliases:
-  - 神秘女子
-  - 苹果女人
+  - 周总监
+  - 老周
+- id: char_004
+  name: 小林
+  role: supporting
+  arc: 作为新生代执行者的缩影，其功能是映射沈曼管理风格的有效性与团队执行力；后续可能承担危机处理具体任务，成为沈曼与基层执行层的纽带。
+  aliases:
+  - 小林
+- id: char_005
+  name: 老赵
+  role: extra
+  arc: 仅作为权力结构的背景符号存在，其‘邮件通知’的被动姿态强化陆景深空降的非常规性与总部意志的绝对性；无戏份发展，纯功能性角色。
+  aliases:
+  - 赵总
+  - CEO老赵
 acts:
 - scenes:
   - scene_id: scene_001_001
     act_ref: act_001
-    location: 林锐的公寓
+    location: 公司大会议室
     int_ext: INT
-    time_of_day: NIGHT
+    time_of_day: DAY
     characters_present:
     - char_001
+    - char_003
+    - char_004
     beats:
-    - type: action
-      content: 雨点敲打着窗户，玻璃上划出一道道扭曲的水痕。电脑屏幕的蓝光映在林锐脸上，将他棱角分明的轮廓切割得更加冷硬。
-    - type: action
-      content: 键盘声密集而规律。他的手指在机械键盘上跳动，眼睛盯着屏幕上滚动的代码。
     - type: direction
-      content: 镜头切换到电脑屏幕右下角的时间，显示凌晨两点十七分。
+      content: 镜头从会议室的冷气出风口缓缓移向长桌，桌上已经坐满了人。
     - type: action
-      content: 房间不大，陈设简单。一张床、一张桌、三台显示器组成的工位，墙角堆着几个纸箱。桌上放着一个相框，里面夹着一张泛黄的照片。
+      content: 沈曼推门进来，穿着烟灰色收腰西装裙，搭配真丝白衬衫，脚踩七厘米尖头细高跟，步伐笃定地走向自己的位置。
     - type: action
-      content: 林锐停下敲击，端起旁边的马克杯。咖啡凉透了，苦涩的味道在舌尖蔓延。
+      content: 沈曼拉开椅子坐下，将手中的文件夹放在桌面上，动作不紧不慢。
+    - type: action
+      content: 老周隔着两个座位朝沈曼使了个眼色，下巴微不可察地抬了抬，示意她看向长桌尽头的空椅子。
+    - type: action
+      content: 沈曼顺着他的视线看过去，目光平静。
     - type: dialogue
       char_ref: char_001
-      line: （叹气）
-      parenthetical: （看着相框）
-      emotion: 忧郁
+      line: 人都到齐了，开始吧。
+      emotion: 平淡
     - type: action
-      content: 窗外传来救护车的鸣笛声，由远及近，又渐渐消失在雨夜深处。
-    - type: action
-      content: 林锐揉了揉眉心，正准备继续工作，门铃突然响了。短促的一声，在凌晨两点的寂静里格外刺耳。
+      content: 沈曼翻开文件夹，目光扫过在座每一个人。
     - type: dialogue
       char_ref: char_001
-      line: （皱眉）谁？
-      emotion: 警惕
+      line: 先说第一件事。上周‘星途计划’的媒体通稿出了两处数据错误，虽然及时撤回了，但有三家自媒体截了图。我的意思是，这件事不能就这么算了。
+      emotion: 严肃
     - type: action
-      content: 显示器上的监控画面切换到了门口——走廊的声控灯亮着，昏黄的光线下，门口空无一人。
-    - type: action
-      content: 门铃又响了。这次他站了起来。脚步很轻，几乎听不到声音。走到门边时，右手下意识地摸向腰间——那里什么都没有。
-    - type: direction
-      content: 镜头特写林锐的手，停顿了一下。
-    - type: action
-      content: 他透过猫眼向外看。走廊空荡荡的，只有对面墙上那盏声控灯还亮着，光线微弱，照出一小片斑驳的墙皮。
-    - type: action
-      content: 林锐打开门。冷风裹着雨丝扑面而来，带着深秋特有的潮湿气息。走廊里确实没有人。但他低下头时，看见了门口的东西。
-    - type: action
-      content: 一个牛皮纸包裹，巴掌大小，用麻绳捆得整整齐齐。雨水已经打湿了纸面，边缘渗出深色的水渍。
-    - type: action
-      content: 林锐弯腰捡起来。包裹很轻，几乎没什么分量。翻过来看，正面用黑色马克笔写着两个字——林锐。字迹歪歪扭扭，像是左手写的。
-    - type: direction
-      content: 镜头拉近，特写包裹上的字迹。
-    - type: action
-      content: 他抬头扫了一眼走廊两端。左边是电梯间，右边是消防通道。声控灯刚好在这一刻熄灭，整个走廊陷入黑暗。
-    - type: action
-      content: 林锐退回屋内，关上门，反锁。
-    - type: action
-      content: 他把包裹放在桌上，没有急着拆。先去厨房倒了杯热水，蒸汽模糊了眼镜片。他摘下眼镜擦拭，透过雾气看着那个包裹。
-    - type: action
-      content: 麻绳的结打得很紧，是水手结。
-    - type: action
-      content: 他放下眼镜，从抽屉里拿出一把美工刀，小心地割断麻绳。牛皮纸展开的瞬间，一股霉味混合着樟脑丸的气味弥漫开来。
-    - type: action
-      content: 里面只有两样东西。一张老照片，边角泛黄，背面朝上。翻过来时，他的手顿住了。
-    - type: direction
-      content: 镜头特写照片，上面是两个孩子的合影。男孩大约十岁，穿着蓝色的校服，表情严肃地看着镜头。女孩比他矮半个头，扎着两个羊角辫，笑得露出缺了一颗的门牙。背景是一个老旧小区的花坛，月季开得正盛。
-    - type: action
-      content: 林锐的手指摩挲过照片上女孩的脸，指节微微发白。
-    - type: action
-      content: 另一件东西，是一把钥匙。黄铜材质，表面布满划痕，钥匙柄上贴着一小块发黄的标签纸。纸上的字迹已经模糊，但还能辨认出几个数字——307。
-    - type: action
-      content: 林锐盯着那串数字，瞳孔骤然收缩。
-    - type: action
-      content: 雨声忽然变得很响，像是整个世界都被浸泡在水里。他拿起手机，拨出一个号码。响了六声，无人接听。
-    - type: action
-      content: 他又拨了一次。
-    - type: dialogue
-      char_ref: char_004
-      line: 林哥？大半夜的……
-      emotion: 疑惑
+      content: 沈曼抬眼看向长桌末端的一个年轻女孩小林。
     - type: dialogue
       char_ref: char_001
-      line: 老周，帮我查一个地址。
-      emotion: 坚定
-    - type: dialogue
-      char_ref: char_004
-      line: 现在？
-      emotion: 惊讶
-    - type: dialogue
-      char_ref: char_001
-      line: 现在。
+      line: 小林，查一下是哪家供应商校对的，按合同条款追责。另外，今天下班前给我一份危机复盘报告。
       emotion: 果断
     - type: action
-      content: 他报出一串地址，电话那头沉默了几秒，然后是键盘敲击的声音。
+      content: 小林连忙点头，笔在本子上飞快地记着。
+    transition: CUT TO
+  - scene_id: scene_001_002
+    act_ref: act_001
+    location: 公司大会议室
+    int_ext: INT
+    time_of_day: DAY
+    characters_present:
+    - char_001
+    - char_002
+    - char_003
+    - char_004
+    beats:
+    - type: direction
+      content: 镜头切到会议室门口，陆景深走了进来。
+    - type: action
+      content: 陆景深穿一件深灰色西装，没有打领带，白衬衫领口微微敞开，步伐从容地走向长桌尽头那把空椅子。
     - type: dialogue
-      char_ref: char_004
-      line: 查到了。那是城西老工业区的一栋旧楼，已经列入拆迁计划了。怎么了？
-      emotion: 疑惑
-    - type: dialogue
-      char_ref: char_001
-      line: 没事。谢了。
+      char_ref: char_002
+      line: 抱歉，来晚了。
       emotion: 冷静
     - type: action
-      content: 他挂断电话，走到窗边。雨还在下，城市的灯火在雨幕中模糊成一片流动的光斑。玻璃上映出他的脸——三十岁的男人，眼角已经有了细纹，眼神却像十年前那个刚入警队的年轻人一样锋利。
+      content: 经过沈曼身边时，陆景深的脚步顿了一下，目光落在沈曼身上，审视意味明显。
+    - type: dialogue
+      char_ref: char_002
+      line: 继续。
+      emotion: 批准
     - type: action
-      content: 他转过身，拿起外套。
-    - type: direction
-      content: 镜头拉远，展示桌上的老照片，二十年前的林晓还在笑着，浑然不知自己将在十年后的某个黄昏，永远消失在放学回家的路上。
+      content: 沈曼的手指在文件夹上轻轻敲了两下，嘴角微微弯起一个弧度，但眼睛里没有笑意。
+    - type: dialogue
+      char_ref: char_001
+      line: 陆总来得正好。我刚说到‘星途计划’的媒体事故。这件事涉及公关部的供应商管理流程，我正在安排整改。
+      emotion: 坦然
+    - type: dialogue
+      char_ref: char_002
+      line: 整改？沈总监，数据错误是表面问题。供应商为什么敢犯这种低级错误？因为你们的审核流程形同虚设。
+      emotion: 质疑
+    - type: action
+      content: 会议室里的空气骤然收紧，老周低头假装看手机，旁边的财务经理端起水杯喝了一口。
+    - type: dialogue
+      char_ref: char_001
+      line: 陆总说得对。审核流程确实需要优化。不过，这套流程是去年我接手公关部时重建的，在此之前，类似事故的发生频率是现在的三倍。
+      emotion: 从容
+    - type: dialogue
+      char_ref: char_001
+      line: 陆总如果有更好的方案，我很乐意学习。
+      emotion: 挑衅
+    - type: dialogue
+      char_ref: char_002
+      line: 方案当然有。会后单独聊。
+      emotion: 自信
+    - type: dialogue
+      char_ref: char_002
+      line: 继续开会。
+      emotion: 公事公办
+    - type: action
+      content: 沈曼重新翻开文件夹，指尖在纸页边缘轻轻划过，表情没有任何变化，但叠在上面的那条腿，脚尖微微绷了一下。
+    - type: action
+      content: 黑色高跟鞋的鞋尖在会议桌下轻轻晃了晃。
     transition: FADE OUT
   act_id: act_001
 - scenes:
-  - scene_id: scene_001_001
-    act_ref: act_001
-    location: 林锐的公寓
+  - scene_id: scene_002_001
+    act_ref: act_002
+    location: 公司走廊尽头的落地窗前
     int_ext: INT
-    time_of_day: NIGHT
+    time_of_day: DAY
     characters_present:
     - char_001
     beats:
     - type: action
-      content: 雨点敲打着窗户，玻璃上划出一道道扭曲的水痕。电脑屏幕的蓝光映在林锐脸上，将他棱角分明的轮廓切割得更加冷硬。
-    - type: action
-      content: 键盘声密集而规律。他的手指在机械键盘上跳动，眼睛盯着屏幕上滚动的代码。
+      content: 沈曼端着咖啡杯站在落地窗前，目光落在玻璃上映出的自己的身影上。
     - type: direction
-      content: 镜头切换到电脑屏幕右下角的时间，显示凌晨两点十七分。
+      content: 镜头从沈曼的侧脸缓缓移动到她映在玻璃上的倒影，展示她的烟灰色裙子、笔直的小腿线条和高跟鞋。
     - type: action
-      content: 房间不大，陈设简单。一张床、一张桌、三台显示器组成的工位，墙角堆着几个纸箱。桌上放着一个相框，里面夹着一张泛黄的照片。
+      content: 沈曼深吸一口气，转身走向电梯。
+    transition: CUT TO
+  - scene_id: scene_002_002
+    act_ref: act_002
+    location: 公司电梯间
+    int_ext: INT
+    time_of_day: DAY
+    characters_present:
+    - char_001
+    - char_002
+    beats:
     - type: action
-      content: 林锐停下敲击，端起旁边的马克杯。咖啡凉透了，苦涩的味道在舌尖蔓延。
+      content: 电梯门打开，陆景深站在里面，穿着浅灰色衬衫，袖子卷到小臂中段，手里拿着一份文件。
     - type: dialogue
-      char_ref: char_001
-      line: （叹气）
-      parenthetical: （看着相框）
-      emotion: 忧郁
-    - type: action
-      content: 窗外传来救护车的鸣笛声，由远及近，又渐渐消失在雨夜深处。
-    - type: action
-      content: 林锐揉了揉眉心，正准备继续工作，门铃突然响了。短促的一声，在凌晨两点的寂静里格外刺耳。
-    - type: dialogue
-      char_ref: char_001
-      line: （皱眉）谁？
-      emotion: 警惕
-    - type: action
-      content: 显示器上的监控画面切换到了门口——走廊的声控灯亮着，昏黄的光线下，门口空无一人。
-    - type: action
-      content: 门铃又响了。这次他站了起来。脚步很轻，几乎听不到声音。走到门边时，右手下意识地摸向腰间——那里什么都没有。
-    - type: direction
-      content: 镜头特写林锐的手，停顿了一下。
-    - type: action
-      content: 他透过猫眼向外看。走廊空荡荡的，只有对面墙上那盏声控灯还亮着，光线微弱，照出一小片斑驳的墙皮。
-    - type: action
-      content: 林锐打开门。冷风裹着雨丝扑面而来，带着深秋特有的潮湿气息。走廊里确实没有人。但他低下头时，看见了门口的东西。
-    - type: action
-      content: 一个牛皮纸包裹，巴掌大小，用麻绳捆得整整齐齐。雨水已经打湿了纸面，边缘渗出深色的水渍。
-    - type: action
-      content: 林锐弯腰捡起来。包裹很轻，几乎没什么分量。翻过来看，正面用黑色马克笔写着两个字——林锐。字迹歪歪扭扭，像是左手写的。
-    - type: direction
-      content: 镜头拉近，特写包裹上的字迹。
-    - type: action
-      content: 他抬头扫了一眼走廊两端。左边是电梯间，右边是消防通道。声控灯刚好在这一刻熄灭，整个走廊陷入黑暗。
-    - type: action
-      content: 林锐退回屋内，关上门，反锁。
-    - type: action
-      content: 他把包裹放在桌上，没有急着拆。先去厨房倒了杯热水，蒸汽模糊了眼镜片。他摘下眼镜擦拭，透过雾气看着那个包裹。
-    - type: action
-      content: 麻绳的结打得很紧，是水手结。
-    - type: action
-      content: 他放下眼镜，从抽屉里拿出一把美工刀，小心地割断麻绳。牛皮纸展开的瞬间，一股霉味混合着樟脑丸的气味弥漫开来。
-    - type: action
-      content: 里面只有两样东西。一张老照片，边角泛黄，背面朝上。翻过来时，他的手顿住了。
-    - type: direction
-      content: 镜头特写照片，上面是两个孩子的合影。男孩大约十岁，穿着蓝色的校服，表情严肃地看着镜头。女孩比他矮半个头，扎着两个羊角辫，笑得露出缺了一颗的门牙。背景是一个老旧小区的花坛，月季开得正盛。
-    - type: action
-      content: 林锐的手指摩挲过照片上女孩的脸，指节微微发白。
-    - type: action
-      content: 另一件东西，是一把钥匙。黄铜材质，表面布满划痕，钥匙柄上贴着一小块发黄的标签纸。纸上的字迹已经模糊，但还能辨认出几个数字——307。
-    - type: action
-      content: 林锐盯着那串数字，瞳孔骤然收缩。
-    - type: action
-      content: 雨声忽然变得很响，像是整个世界都被浸泡在水里。他拿起手机，拨出一个号码。响了六声，无人接听。
-    - type: action
-      content: 他又拨了一次。
-    - type: dialogue
-      char_ref: char_004
-      line: 林哥？大半夜的……
-      emotion: 疑惑
-    - type: dialogue
-      char_ref: char_001
-      line: 老周，帮我查一个地址。
-      emotion: 坚定
-    - type: dialogue
-      char_ref: char_004
-      line: 现在？
-      emotion: 惊讶
-    - type: dialogue
-      char_ref: char_001
-      line: 现在。
-      emotion: 果断
-    - type: action
-      content: 他报出一串地址，电话那头沉默了几秒，然后是键盘敲击的声音。
-    - type: dialogue
-      char_ref: char_004
-      line: 查到了。那是城西老工业区的一栋旧楼，已经列入拆迁计划了。怎么了？
-      emotion: 疑惑
-    - type: dialogue
-      char_ref: char_001
-      line: 没事。谢了。
+      char_ref: char_002
+      line: 沈总监。
+      parenthetical: 抬头看向沈曼，不紧不慢地说道
       emotion: 冷静
     - type: action
-      content: 他挂断电话，走到窗边。雨还在下，城市的灯火在雨幕中模糊成一片流动的光斑。玻璃上映出他的脸——三十岁的男人，眼角已经有了细纹，眼神却像十年前那个刚入警队的年轻人一样锋利。
-    - type: action
-      content: 他转过身，拿起外套。
+      content: 沈曼脚步顿了不到半秒，然后稳稳地走进电梯。
     - type: direction
-      content: 镜头拉远，展示桌上的老照片，二十年前的林晓还在笑着，浑然不知自己将在十年后的某个黄昏，永远消失在放学回家的路上。
+      content: 电梯门缓缓合上，密闭的空间里只剩下他们两个人。
+    - type: dialogue
+      char_ref: char_002
+      line: 刚才会上说的审核流程优化方案，你有兴趣现在听吗？
+      parenthetical: 声音从身后传来，不紧不慢
+      emotion: 强势
+    - type: dialogue
+      char_ref: char_001
+      line: 当然。陆总请讲。
+      parenthetical: 没有回头，看着电梯门上模糊的倒影
+      emotion: 平静
+    - type: dialogue
+      char_ref: char_002
+      line: 我的方案很简单。供应商由我这边统一管理，公关部只负责需求对接。
+      parenthetical: 语气坚定
+      emotion: 自信
+    - type: action
+      content: 沈曼的手指在咖啡杯上微微收紧，缓缓转过身来，高跟鞋在地板上发出清脆的一声响。
+    - type: dialogue
+      char_ref: char_001
+      line: 陆总的意思是，把公关部的供应商管理权收走？
+      parenthetical: 抬起头，对上他的目光，语气带着一丝恰到好处的笑意
+      emotion: 试探
+    - type: dialogue
+      char_ref: char_002
+      line: 不是收走。是优化资源配置。
+      parenthetical: 低头看着她，目光从她的眼睛移到她嘴角那抹笑意上
+      emotion: 坚定
+    - type: action
+      content: 电梯忽然轻轻晃了一下，头顶的灯光闪了闪。
+    - type: action
+      content: 沈曼下意识地扶了一下侧面的扶手，身体微微晃了一下，高跟鞋在地板上轻轻滑了半寸。
+    - type: action
+      content: 陆景深几乎是同时伸出手，虚虚地挡在她身侧，但没有碰到她。
+    - type: dialogue
+      char_ref: char_001
+      line: 谢谢陆总。
+      parenthetical: 站稳，低头看了一眼他那只悬在她腰侧的手，然后抬起头，嘴角的笑意更深了一些
+      emotion: 礼貌而带有一丝挑衅
+    - type: dialogue
+      char_ref: char_002
+      line: 不客气。
+      parenthetical: 收回手，脸上的表情没有任何变化
+      emotion: 冷漠
+    - type: action
+      content: 电梯到达的提示音响起，门缓缓打开。
+    - type: action
+      content: 沈曼率先走了出去，高跟鞋敲击地面的节奏一如既往地稳。
+    - type: direction
+      content: 镜头跟随沈曼走出电梯间，拐过走廊转角，靠在墙上，闭了一下眼睛。
+    - type: action
+      content: 沈曼手里的咖啡已经凉了。
     transition: FADE OUT
   act_id: act_002

@@ -86,9 +86,8 @@ class CharacterExtractor:
             chapters_content: 各章节的正文内容列表
 
         Yields:
-            {"type": "progress", "current": int, "total": int, "message": str}
+            {"type": "progress", "percent": int, "message": str}
             {"type": "chunk_result", "characters": list, "chunk_index": int}
-            {"type": "merge_start", "count": int}
             {"type": "complete", "profiles": dict}
             {"type": "error", "message": str}
         """
@@ -96,18 +95,30 @@ class CharacterExtractor:
             yield {"type": "complete", "profiles": {"characters": []}}
             return
 
+        yield {
+            "type": "progress",
+            "percent": 0,
+            "message": "正在准备...",
+        }
+
         full_text = "\n\n".join(chapters_content)
         chunks = self._split_into_chunks(full_text)
         total_chunks = len(chunks)
 
         logger.info("开始流式角色提取: 共 %d 个分块", total_chunks)
 
+        yield {
+            "type": "progress",
+            "percent": 30,
+            "message": "30% 正在分析角色关系...",
+        }
+
         all_characters = []
         for i, chunk in enumerate(chunks):
+            chunk_percent = 30 + int((i + 1) / total_chunks * 40)
             yield {
                 "type": "progress",
-                "current": i + 1,
-                "total": total_chunks,
+                "percent": chunk_percent,
                 "message": f"正在提取角色 (第 {i + 1}/{total_chunks} 块)...",
             }
             try:
@@ -128,14 +139,23 @@ class CharacterExtractor:
         if total_chunks > 1 and all_characters:
             yield {
                 "type": "progress",
-                "current": total_chunks,
-                "total": total_chunks,
-                "message": f"正在合并去重 ({len(all_characters)} 个角色)...",
+                "percent": 70,
+                "message": "70% 正在合并去重角色...",
             }
             merged = self._merge_characters(all_characters)
             logger.info("角色合并完成: %d → %d 个角色", len(all_characters), len(merged))
+            yield {
+                "type": "progress",
+                "percent": 80,
+                "message": "80% 正在保存角色数据...",
+            }
             yield {"type": "complete", "profiles": {"characters": merged}}
         else:
+            yield {
+                "type": "progress",
+                "percent": 80,
+                "message": "80% 正在保存角色数据...",
+            }
             yield {"type": "complete", "profiles": {"characters": all_characters}}
 
     def save_profiles(self, profiles: dict, output_path: str):

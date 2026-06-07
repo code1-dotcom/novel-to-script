@@ -9,6 +9,7 @@ AI 小说转剧本工具的用户交互界面。
 import streamlit as st
 import os
 import logging
+import re
 import yaml
 
 from chapter_parser import ChapterParser
@@ -44,43 +45,41 @@ ROLE_LABELS = {
 ROLE_LABELS_REVERSE = {v: k for k, v in ROLE_LABELS.items()}
 
 YAML_FIELD_LABELS_CN = {
-    "meta": "元信息",
-    "title": "标题",
-    "author": "作者",
-    "version": "版本",
-    "genre": "类型",
-    "source": "来源",
-    "characters": "角色列表",
-    "id": "角色ID",
-    "name": "名称",
-    "aliases": "别名",
-    "role": "角色类型",
-    "arc": "角色弧线",
-    "traits": "特征",
-    "personality": "性格",
-    "speaking_style": "说话风格",
-    "background": "背景",
-    "relationships": "人际关系",
-    "acts": "幕",
-    "act_id": "幕ID",
-    "act_ref": "所属幕",
-    "scenes": "场景列表",
-    "scene_id": "场景ID",
-    "location": "地点",
-    "int_ext": "内外景",
-    "time_of_day": "时间",
-    "characters_present": "出场角色",
-    "beats": "节拍",
-    "type": "类型",
-    "char_ref": "角色引用",
-    "line": "台词",
-    "parenthetical": "小动作提示",
-    "emotion": "情绪",
-    "content": "内容",
-    "transition": "转场",
-    "dialogue": "对白",
-    "action": "动作",
-    "direction": "镜头指示",
+    "meta": "元信息/meta",
+    "title": "标题/title",
+    "author": "原著作者/author",
+    "adapter": "改编编剧/adapter",
+    "version": "版本号/version",
+    "genre": "类型/genre",
+    "source": "原作来源/source",
+    "logline": "一句话梗概/logline",
+    "characters": "角色表/characters",
+    "id": "角色ID/id",
+    "name": "姓名/name",
+    "aliases": "别名/aliases",
+    "role": "角色类型/role",
+    "arc": "人物弧线/arc",
+    "acts": "幕/acts",
+    "act_id": "幕编号/act_id",
+    "summary": "摘要/summary",
+    "scenes": "场景/scenes",
+    "scene_id": "场景序号/scene_id",
+    "act_ref": "所属幕/act_ref",
+    "location": "地点/location",
+    "int_ext": "内外景/int_ext",
+    "time_of_day": "时间/time_of_day",
+    "characters_present": "出场角色/characters_present",
+    "beats": "节拍/beats",
+    "type": "类型/type",
+    "char_ref": "角色引用/char_ref",
+    "line": "台词/line",
+    "parenthetical": "动作提示/parenthetical",
+    "emotion": "情绪/emotion",
+    "content": "内容/content",
+    "transition": "转场/transition",
+    "notes": "备注/notes",
+    "tag": "标签/tag",
+    "comment": "说明/comment",
 }
 
 
@@ -92,13 +91,40 @@ def translate_yaml_keys(yaml_str: str) -> str:
         if not stripped or stripped.startswith("#"):
             result.append(line)
             continue
-        indent = line[:len(line) - len(stripped)]
-        if ":" in stripped:
-            key = stripped.split(":", 1)[0].strip()
-            if key in YAML_FIELD_LABELS_CN and not stripped.startswith("- "):
+        match = re.match(r'^(\s*)(- )?(\w+):(.*)$', line)
+        if match:
+            indent = match.group(1)
+            dash = match.group(2) or ""
+            key = match.group(3)
+            rest = match.group(4)
+            if key in YAML_FIELD_LABELS_CN:
                 cn_label = YAML_FIELD_LABELS_CN[key]
-                rest = stripped.split(":", 1)[1]
-                result.append(f"{indent}{cn_label}（{key}）:{rest}")
+                result.append(f"{indent}{dash}{cn_label}:{rest}")
+            else:
+                result.append(line)
+        else:
+            result.append(line)
+    return "\n".join(result)
+
+
+def reverse_translate_yaml_keys(yaml_str: str) -> str:
+    reverse_map = {v: k for k, v in YAML_FIELD_LABELS_CN.items()}
+    lines = yaml_str.split("\n")
+    result = []
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            result.append(line)
+            continue
+        match = re.match(r'^(\s*)(- )?([^:]+):(.*)$', line)
+        if match:
+            indent = match.group(1)
+            dash = match.group(2) or ""
+            key = match.group(3)
+            rest = match.group(4)
+            if key in reverse_map:
+                eng_key = reverse_map[key]
+                result.append(f"{indent}{dash}{eng_key}:{rest}")
             else:
                 result.append(line)
         else:
@@ -122,11 +148,7 @@ def init_session_state():
             "ai_chat_history": [],
             "editor_messages": [],
             "cancel_requested": False,
-            "show_cn_labels": False,
         }
-
-    if "folder_path" not in st.session_state:
-        st.session_state.folder_path = ""
 
     if "scanned" not in st.session_state:
         st.session_state.scanned = False
@@ -138,6 +160,21 @@ def reset_chapter_selection():
     keys_to_remove = [k for k in st.session_state if k.startswith("ch_select_")]
     for k in keys_to_remove:
         del st.session_state[k]
+
+
+def on_chapter_checkbox_change():
+    """章节 checkbox 变化时的回调：从 session_state 统一收集选中状态"""
+    wf = st.session_state.workflow
+    selected_keys = set()
+    for key in sorted(st.session_state.keys()):
+        if not key.startswith("ch_select_"):
+            continue
+        if st.session_state[key] is True:
+            parts = key.replace("ch_select_", "").split("_", 1)
+            if len(parts) == 2:
+                file_idx, ch_idx = parts[0], parts[1]
+                selected_keys.add(f"{file_idx}:{ch_idx}")
+    wf["selected_chapter_keys"] = selected_keys
 
 
 def auto_extract_title(chapters_data):
@@ -157,109 +194,61 @@ def render_page_upload():
     wf = st.session_state.workflow
 
     st.header("📁 上传小说")
-    st.markdown("选择文件夹扫描或直接上传 `.txt` 文件")
 
-    use_folder = st.checkbox("使用本地文件夹路径", key="use_folder_mode")
-
-    if use_folder:
-        col_path, col_btn = st.columns([4, 1])
-        with col_path:
-            folder_path = st.text_input(
-                "文件夹路径（包含 .txt 文件）",
-                value=st.session_state.folder_path,
-                placeholder="例如: F:\\novel-to-script\\小说素材",
-                key="folder_path_input",
-                label_visibility="collapsed",
-            )
-            st.session_state.folder_path = folder_path
-        with col_btn:
-            scan_clicked = st.button("🔍 扫描文件夹", use_container_width=True)
-
-        if scan_clicked:
-            if folder_path and os.path.isdir(folder_path):
-                with st.spinner("正在扫描文件夹..."):
-                    try:
-                        parser = ChapterParser()
-                        results = parser.parse_directory(folder_path)
-                    except Exception as e:
-                        st.error(f"扫描文件夹失败: {e}")
-                        return
-                wf["chapters"] = results
-                reset_chapter_selection()
-                auto_extract_title(results)
-                st.session_state.scanned = True
-                total_chapters = sum(len(f["chapters"]) for f in results)
-                st.success(f"已扫描 {len(results)} 个文件，共 {total_chapters} 个章节")
-            else:
-                st.error("文件夹路径无效，请检查后重试")
-    else:
-        uploaded_files = st.file_uploader(
-            "上传 .txt 文件（可按住 Ctrl 多选）",
-            type=["txt"],
-            accept_multiple_files=True,
-            key="uploaded_files_widget",
-        )
-        if uploaded_files:
-            parser = ChapterParser()
-            results, parse_errors = parser.parse_uploaded_files(uploaded_files)
-            wf["chapters"] = results
-            reset_chapter_selection()
-            auto_extract_title(results)
-            st.session_state.scanned = True
-            total_chapters = sum(len(f["chapters"]) for f in results)
-            st.success(f"已上传 {len(results)} 个文件，共 {total_chapters} 个章节")
-            if parse_errors:
-                for err in parse_errors:
-                    st.warning(err)
+    uploaded_files = st.file_uploader(
+        "上传 .txt 文件（可按住 Ctrl 多选）",
+        type=["txt"],
+        accept_multiple_files=True,
+        key="uploaded_files_widget",
+    )
+    if uploaded_files:
+        parser = ChapterParser()
+        results, parse_errors = parser.parse_uploaded_files(uploaded_files)
+        wf["chapters"] = results
+        reset_chapter_selection()
+        auto_extract_title(results)
+        st.session_state.scanned = True
+        total_chapters = sum(len(f["chapters"]) for f in results)
+        st.success(f"已上传 {len(results)} 个文件，共 {total_chapters} 个章节")
+        if parse_errors:
+            for err in parse_errors:
+                st.warning(err)
 
     chapters_data = wf.get("chapters", [])
     if not chapters_data:
-        st.info("👆 请先上传或扫描小说文件")
+        st.info("👆 请先上传小说文件")
         return
 
     st.markdown("---")
     st.header("📑 选择章节")
 
-    selected_keys: set[str] = set()
     total_chapter_count = 0
-    existing_selections = {
-        k: v for k, v in st.session_state.items()
-        if k.startswith("ch_select_") and v is True
-    }
+    selected_keys = set()
 
     for file_idx, file_data in enumerate(chapters_data):
         file_name = file_data["file_name"]
         file_chapters = file_data["chapters"]
         total_chapter_count += len(file_chapters)
 
-        with st.expander(f"📄 {file_name}（{len(file_chapters)} 章）", expanded=True):
-            select_all_key = f"select_all_{file_idx}"
+        st.subheader(f"📄 {file_name}（{len(file_chapters)} 章）")
 
-            col_all, col_spacer = st.columns([1, 4])
-            with col_all:
-                all_selected = st.checkbox("全选 / 取消全选", key=select_all_key)
-
-            if all_selected:
-                for ch_idx in range(len(file_chapters)):
-                    st.session_state[f"ch_select_{file_idx}_{ch_idx}"] = True
-
-            cols = st.columns(2)
-            for ch_idx, ch in enumerate(file_chapters):
-                ch_key = f"ch_select_{file_idx}_{ch_idx}"
-                label = f"{ch['raw_title'] or ch['title']}　({len(ch['content'])} 字)"
-                with cols[ch_idx % 2]:
-                    st.checkbox(label, key=ch_key)
-
-    for key, val in st.session_state.items():
-        if key.startswith("ch_select_") and val is True:
-            parts = key.replace("ch_select_", "").split("_", 1)
-            if len(parts) == 2:
-                file_idx, ch_idx = parts[0], parts[1]
+        for ch_idx, ch in enumerate(file_chapters):
+            ch_key = f"ch_select_{file_idx}_{ch_idx}"
+            label = f"{ch['raw_title'] or ch['title']}　({len(ch['content'])} 字)"
+            # 使用 session_state 存储选中状态，button 切换
+            if ch_key not in st.session_state:
+                st.session_state[ch_key] = False
+            is_checked = st.session_state[ch_key]
+            btn_label = f"{'☑' if is_checked else '☐'} {label}"
+            if st.button(btn_label, key=f"btn_{ch_key}", use_container_width=True):
+                st.session_state[ch_key] = not is_checked
+                st.rerun()
+            if is_checked:
                 selected_keys.add(f"{file_idx}:{ch_idx}")
 
     wf["selected_chapter_keys"] = selected_keys
-
     selected_count = len(selected_keys)
+
     if selected_count > 0:
         st.success(f"✅ 已选择 {selected_count} / {total_chapter_count} 个章节")
     else:
@@ -293,6 +282,7 @@ def render_page_upload():
 
     st.markdown("---")
 
+    # 直接使用之前收集的 selected_keys
     has_selected = selected_count > 0
     has_title = bool(meta.get("title", "").strip())
 
@@ -633,10 +623,7 @@ def generate_current_chapter(wf, chapter_queue, current_idx):
                 status_placeholder.warning(f"⏹️ 已取消第 {current_idx + 1} 章生成")
                 return
             full_output += token
-            if wf.get("show_cn_labels"):
-                display_text = translate_yaml_keys(full_output)
-            else:
-                display_text = full_output
+            display_text = translate_yaml_keys(full_output)
             output_placeholder.code(display_text, language="yaml")
 
         wf["current_yaml"] = full_output
@@ -676,28 +663,8 @@ def render_left_panel(wf, chapter_queue, current_idx, total_chapters):
             for e in errors:
                 st.markdown(f"- {e}")
 
-    cn_label_toggle = st.checkbox(
-        "显示中文字段标签",
-        value=wf.get("show_cn_labels", False),
-        key="cn_label_toggle",
-        help="在 YAML 编辑器中显示中文字段名（如：标题（title）:）",
-    )
-    wf["show_cn_labels"] = cn_label_toggle
-
-    with st.expander("📖 YAML 字段中英文对照", expanded=False):
-        cols = st.columns(2)
-        items = list(YAML_FIELD_LABELS_CN.items())
-        mid = len(items) // 2
-        for col_idx, item_slice in enumerate([items[:mid], items[mid:]]):
-            with cols[col_idx]:
-                for eng, cn in item_slice:
-                    st.markdown(f"- `{eng}` → **{cn}**")
-
     current_yaml = wf.get("current_yaml", "")
-    if cn_label_toggle and current_yaml:
-        display_yaml = translate_yaml_keys(current_yaml)
-    else:
-        display_yaml = current_yaml
+    display_yaml = translate_yaml_keys(current_yaml) if current_yaml else current_yaml
 
     edited_yaml = st.text_area(
         "剧本内容（可直接编辑）",
@@ -707,10 +674,8 @@ def render_left_panel(wf, chapter_queue, current_idx, total_chapters):
         label_visibility="collapsed",
     )
 
-    if cn_label_toggle and edited_yaml != display_yaml:
-        pass
-    elif edited_yaml != wf.get("current_yaml", ""):
-        wf["current_yaml"] = edited_yaml
+    if edited_yaml != display_yaml:
+        wf["current_yaml"] = reverse_translate_yaml_keys(edited_yaml)
 
 
 def render_right_panel(wf):
