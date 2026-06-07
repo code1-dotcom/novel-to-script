@@ -1,12 +1,15 @@
 """app.py — Streamlit 主应用
 AI 小说转剧本工具的用户交互界面。
 页面一：上传 + 章节选择 + 元信息填写
-页面二：左右分栏生成与编辑（含 AI 编辑助手）
+页面二：角色识别确认（三步流程第一步）
+页面三：角色性格定义确认（三步流程第二步）
+页面四：左右分栏生成与编辑（含 AI 编辑助手，三步流程第三步）
 """
 
 import streamlit as st
 import os
 import logging
+import yaml
 
 from chapter_parser import ChapterParser
 from character_extractor import CharacterExtractor
@@ -31,6 +34,77 @@ st.set_page_config(
 
 GENRE_OPTIONS = ["科幻", "悬疑", "爱情", "奇幻", "武侠", "都市", "历史", "其他"]
 
+ROLE_LABELS = {
+    "protagonist": "主角",
+    "antagonist": "反派",
+    "supporting": "配角",
+    "extra": "龙套",
+}
+
+ROLE_LABELS_REVERSE = {v: k for k, v in ROLE_LABELS.items()}
+
+YAML_FIELD_LABELS_CN = {
+    "meta": "元信息",
+    "title": "标题",
+    "author": "作者",
+    "version": "版本",
+    "genre": "类型",
+    "source": "来源",
+    "characters": "角色列表",
+    "id": "角色ID",
+    "name": "名称",
+    "aliases": "别名",
+    "role": "角色类型",
+    "arc": "角色弧线",
+    "traits": "特征",
+    "personality": "性格",
+    "speaking_style": "说话风格",
+    "background": "背景",
+    "relationships": "人际关系",
+    "acts": "幕",
+    "act_id": "幕ID",
+    "act_ref": "所属幕",
+    "scenes": "场景列表",
+    "scene_id": "场景ID",
+    "location": "地点",
+    "int_ext": "内外景",
+    "time_of_day": "时间",
+    "characters_present": "出场角色",
+    "beats": "节拍",
+    "type": "类型",
+    "char_ref": "角色引用",
+    "line": "台词",
+    "parenthetical": "小动作提示",
+    "emotion": "情绪",
+    "content": "内容",
+    "transition": "转场",
+    "dialogue": "对白",
+    "action": "动作",
+    "direction": "镜头指示",
+}
+
+
+def translate_yaml_keys(yaml_str: str) -> str:
+    lines = yaml_str.split("\n")
+    result = []
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            result.append(line)
+            continue
+        indent = line[:len(line) - len(stripped)]
+        if ":" in stripped:
+            key = stripped.split(":", 1)[0].strip()
+            if key in YAML_FIELD_LABELS_CN and not stripped.startswith("- "):
+                cn_label = YAML_FIELD_LABELS_CN[key]
+                rest = stripped.split(":", 1)[1]
+                result.append(f"{indent}{cn_label}（{key}）:{rest}")
+            else:
+                result.append(line)
+        else:
+            result.append(line)
+    return "\n".join(result)
+
 
 def init_session_state():
     if "workflow" not in st.session_state:
@@ -47,6 +121,8 @@ def init_session_state():
             "edit_history": [],
             "ai_chat_history": [],
             "editor_messages": [],
+            "cancel_requested": False,
+            "show_cn_labels": False,
         }
 
     if "folder_path" not in st.session_state:
@@ -146,7 +222,6 @@ def render_page_upload():
 
     selected_keys: set[str] = set()
     total_chapter_count = 0
-    # 先收集已存在的选中状态（来自上一次渲染的 session state）
     existing_selections = {
         k: v for k, v in st.session_state.items()
         if k.startswith("ch_select_") and v is True
@@ -175,7 +250,6 @@ def render_page_upload():
                 with cols[ch_idx % 2]:
                     st.checkbox(label, key=ch_key)
 
-    # 渲染完成后，从 session_state 统一读取所有选中的章节
     for key, val in st.session_state.items():
         if key.startswith("ch_select_") and val is True:
             parts = key.replace("ch_select_", "").split("_", 1)
@@ -227,6 +301,7 @@ def render_page_upload():
         start_disabled = not (has_selected and has_title)
         if st.button("🚀 开始转换", disabled=start_disabled, type="primary", use_container_width=True):
             wf["stage"] = "extracting"
+            wf["cancel_requested"] = False
             st.rerun()
     with col_status:
         if not has_selected:
@@ -254,42 +329,90 @@ def render_page_extracting():
         ch = chapters_data[file_idx]["chapters"][ch_idx]
         selected_chapters_content.append(ch["content"])
 
+    if "extraction_complete" not in wf:
+        wf["extraction_complete"] = False
+        wf["extraction_profiles"] = None
+
+    if wf.get("extraction_complete"):
+        profiles = wf["extraction_profiles"]
+        char_count = len(profiles.get("characters", []))
+        st.success(f"✅ 角色提取完成，共识别 {char_count} 个角色")
+
+        st.markdown("### 已识别角色")
+        for char in profiles.get("characters", []):
+            role_label = ROLE_LABELS.get(char.get("role", ""), char.get("role", ""))
+            st.markdown(f"- **{char.get('name', '')}**（{role_label}）— {char.get('arc', '')}")
+
+        st.markdown("---")
+        col_btn, col_back = st.columns([1, 1])
+        with col_btn:
+            if st.button("▶️ 进入角色确认", type="primary", use_container_width=True):
+                wf["character_profiles"] = profiles
+                wf["stage"] = "character_confirm"
+                st.rerun()
+        with col_back:
+            if st.button("⬅️ 返回重新选择", use_container_width=True):
+                wf["stage"] = "upload"
+                wf["extraction_complete"] = False
+                st.rerun()
+        return
+
     progress_bar = st.progress(0, text="正在初始化...")
     status_text = st.empty()
+    cancel_col, _ = st.columns([1, 3])
+    with cancel_col:
+        cancel_btn = st.button("⏹️ 取消提取", key="cancel_extract", use_container_width=True)
+
+    if cancel_btn:
+        wf["cancel_requested"] = True
+        st.warning("正在取消...")
+        st.rerun()
+
+    if wf.get("cancel_requested"):
+        st.warning("⏹️ 已取消角色提取")
+        wf["cancel_requested"] = False
+        if st.button("⬅️ 返回重新选择", use_container_width=True):
+            wf["stage"] = "upload"
+            st.rerun()
+        return
 
     try:
         bailian = BailianClient()
         extractor = CharacterExtractor(bailian)
 
-        progress_bar.progress(30, text="正在调用 AI 提取角色...")
-        status_text.info("AI 正在分析小说中的角色信息，请稍候...")
+        stream = extractor.extract_characters_stream(selected_chapters_content)
+        for event in stream:
+            if wf.get("cancel_requested"):
+                st.warning("⏹️ 已取消角色提取")
+                wf["cancel_requested"] = False
+                if st.button("⬅️ 返回重新选择", use_container_width=True):
+                    wf["stage"] = "upload"
+                return
 
-        profiles = extractor.extract_characters(selected_chapters_content)
+            if event["type"] == "progress":
+                pct = int(event["current"] / event["total"] * 100) if event["total"] > 0 else 0
+                progress_bar.progress(pct, text=event["message"])
+                status_text.info(event["message"])
+            elif event["type"] == "chunk_result":
+                char_count = len(event.get("characters", []))
+                status_text.info(f"第 {event['chunk_index'] + 1} 块提取到 {char_count} 个角色")
+            elif event["type"] == "complete":
+                profiles = event["profiles"]
+                char_count = len(profiles.get("characters", []))
+                progress_bar.progress(100, text=f"完成！已识别 {char_count} 个角色")
+                status_text.success(f"✅ 角色提取完成，共识别 {char_count} 个角色")
 
-        progress_bar.progress(80, text="正在保存角色特征...")
+                os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+                profiles_path = os.path.join(config.OUTPUT_DIR, config.CHARACTER_PROFILES_FILE)
+                extractor.save_profiles(profiles, profiles_path)
 
-        os.makedirs(config.OUTPUT_DIR, exist_ok=True)
-        profiles_path = os.path.join(config.OUTPUT_DIR, config.CHARACTER_PROFILES_FILE)
-        extractor.save_profiles(profiles, profiles_path)
-
-        wf["character_profiles"] = profiles
-        wf["profiles_path"] = profiles_path
-
-        char_count = len(profiles.get("characters", []))
-        progress_bar.progress(100, text=f"完成！已识别 {char_count} 个角色")
-        status_text.success(f"✅ 角色提取完成，共识别 {char_count} 个角色")
-
-        st.markdown("### 已识别角色")
-        for char in profiles.get("characters", []):
-            role_label = {"protagonist": "主角", "antagonist": "反派", "supporting": "配角", "extra": "龙套"}.get(
-                char.get("role", ""), char.get("role", "")
-            )
-            st.markdown(f"- **{char.get('name', '')}**（{role_label}）— {char.get('arc', '')}")
-
-        st.markdown("---")
-        if st.button("▶️ 进入剧本生成", type="primary", use_container_width=True):
-            wf["stage"] = "generating"
-            st.rerun()
+                wf["extraction_complete"] = True
+                wf["extraction_profiles"] = profiles
+                wf["profiles_path"] = profiles_path
+                st.rerun()
+            elif event["type"] == "error":
+                status_text.error(event["message"])
+                raise RuntimeError(event["message"])
 
     except Exception as e:
         logger.error("角色提取异常: %s", e, exc_info=True)
@@ -305,8 +428,162 @@ def render_page_extracting():
             if st.button("⏭️ 跳过（使用空角色表）", use_container_width=True):
                 wf["character_profiles"] = {"characters": []}
                 wf["profiles_path"] = ""
-                wf["stage"] = "generating"
+                wf["stage"] = "character_confirm"
                 st.rerun()
+
+
+def render_page_character_confirm():
+    st.title("🎬 第一步：角色识别确认")
+    st.markdown("---")
+    st.markdown("请确认 AI 识别出的角色信息，可以编辑、添加或删除角色。")
+
+    wf = st.session_state.workflow
+    profiles = wf.get("character_profiles", {})
+    characters = profiles.get("characters", [])
+
+    if "editing_chars" not in wf:
+        wf["editing_chars"] = [dict(c) for c in characters]
+
+    editing_chars = wf["editing_chars"]
+
+    st.subheader(f"已识别 {len(editing_chars)} 个角色")
+
+    delete_flags = []
+    for i, char in enumerate(editing_chars):
+        with st.container():
+            col_del, col_name, col_aliases, col_role = st.columns([0.5, 2, 2, 1.5])
+            with col_del:
+                delete_flag = st.checkbox("删", key=f"char_del_{i}", help="勾选后点击下方按钮删除")
+                delete_flags.append(delete_flag)
+            with col_name:
+                char["name"] = st.text_input(
+                    "名称", value=char.get("name", ""),
+                    key=f"char_name_{i}", label_visibility="collapsed",
+                    placeholder="角色名称",
+                )
+            with col_aliases:
+                aliases_str = ", ".join(char.get("aliases", []))
+                new_aliases = st.text_input(
+                    "别名（逗号分隔）", value=aliases_str,
+                    key=f"char_aliases_{i}", label_visibility="collapsed",
+                    placeholder="别名1, 别名2",
+                )
+                char["aliases"] = [a.strip() for a in new_aliases.split(",") if a.strip()]
+            with col_role:
+                current_role = char.get("role", "supporting")
+                current_role_cn = ROLE_LABELS.get(current_role, "配角")
+                role_options = ["主角", "反派", "配角", "龙套"]
+                try:
+                    role_idx = role_options.index(current_role_cn)
+                except ValueError:
+                    role_idx = 2
+                selected_role_cn = st.selectbox(
+                    "类型", role_options, index=role_idx,
+                    key=f"char_role_{i}", label_visibility="collapsed",
+                )
+                char["role"] = ROLE_LABELS_REVERSE.get(selected_role_cn, "supporting")
+
+    col_del_btn, col_add, col_spacer = st.columns([1, 1, 2])
+    with col_del_btn:
+        if st.button("🗑️ 删除选中角色", use_container_width=True):
+            wf["editing_chars"] = [
+                c for i, c in enumerate(editing_chars) if not delete_flags[i]
+            ]
+            st.rerun()
+    with col_add:
+        if st.button("➕ 添加新角色", use_container_width=True):
+            new_id = f"char_{len(editing_chars) + 1:03d}"
+            editing_chars.append({
+                "id": new_id,
+                "name": "",
+                "aliases": [],
+                "role": "supporting",
+                "arc": "",
+                "traits": {
+                    "personality": "",
+                    "speaking_style": "",
+                    "background": "",
+                    "relationships": {},
+                },
+            })
+            st.rerun()
+
+    st.markdown("---")
+    col_back, col_confirm = st.columns([1, 1])
+    with col_back:
+        if st.button("⬅️ 返回", use_container_width=True):
+            wf["stage"] = "extracting"
+            wf["extraction_complete"] = False
+            st.rerun()
+    with col_confirm:
+        if st.button("✅ 确认并继续", type="primary", use_container_width=True):
+            for i, char in enumerate(editing_chars):
+                char["id"] = f"char_{i + 1:03d}"
+            wf["character_profiles"] = {"characters": editing_chars}
+            wf["stage"] = "character_detail_confirm"
+            st.rerun()
+
+
+def render_page_character_detail_confirm():
+    st.title("🎬 第二步：角色性格定义确认")
+    st.markdown("---")
+    st.markdown("请确认每个角色的详细特征，可以编辑性格、说话风格和背景信息。")
+
+    wf = st.session_state.workflow
+    profiles = wf.get("character_profiles", {})
+    characters = profiles.get("characters", [])
+
+    if "editing_chars_detail" not in wf:
+        wf["editing_chars_detail"] = [dict(c) for c in characters]
+
+    editing_chars = wf["editing_chars_detail"]
+
+    tabs = st.tabs([f"{c.get('name', f'角色{i+1}')}" for i, c in enumerate(editing_chars)])
+
+    for i, (tab, char) in enumerate(zip(tabs, editing_chars)):
+        with tab:
+            role_cn = ROLE_LABELS.get(char.get("role", ""), char.get("role", ""))
+            st.caption(f"角色类型：{role_cn}　|　别名：{', '.join(char.get('aliases', []))}")
+
+            traits = char.get("traits", {})
+            if not isinstance(traits, dict):
+                traits = {"personality": "", "speaking_style": "", "background": "", "relationships": {}}
+                char["traits"] = traits
+
+            traits["personality"] = st.text_area(
+                "性格特征", value=traits.get("personality", ""),
+                key=f"detail_personality_{i}", height=100,
+                placeholder="描述角色的性格特点...",
+            )
+            traits["speaking_style"] = st.text_area(
+                "说话风格", value=traits.get("speaking_style", ""),
+                key=f"detail_speaking_{i}", height=100,
+                placeholder="描述角色的说话方式、口头禅、语气...",
+            )
+            traits["background"] = st.text_area(
+                "背景信息", value=traits.get("background", ""),
+                key=f"detail_background_{i}", height=150,
+                placeholder="描述角色的出身、经历、社会关系...",
+            )
+
+            arc = st.text_input(
+                "角色弧线", value=char.get("arc", ""),
+                key=f"detail_arc_{i}",
+                placeholder="描述角色的成长变化轨迹...",
+            )
+            char["arc"] = arc
+
+    st.markdown("---")
+    col_back, col_confirm = st.columns([1, 1])
+    with col_back:
+        if st.button("⬅️ 返回上一步", use_container_width=True):
+            wf["stage"] = "character_confirm"
+            st.rerun()
+    with col_confirm:
+        if st.button("✅ 确认并开始生成剧本", type="primary", use_container_width=True):
+            wf["character_profiles"] = {"characters": editing_chars}
+            wf["stage"] = "generating"
+            st.rerun()
 
 
 def build_chapter_queue(chapters_data, selected_keys):
@@ -342,21 +619,36 @@ def generate_current_chapter(wf, chapter_queue, current_idx):
         bailian = BailianClient()
         generator = ScriptGenerator(bailian)
 
-        yaml_output, errors = generator.generate_chapter_script_with_errors(
+        full_output = ""
+        output_placeholder = st.empty()
+
+        for token in generator.generate_chapter_script_stream(
             chapter_content=ch["content"],
             chapter_index=current_idx + 1,
             chapter_title=ch["title"],
             characters=wf["character_profiles"],
             previous_summary=previous_summary,
-        )
+        ):
+            if wf.get("cancel_requested"):
+                status_placeholder.warning(f"⏹️ 已取消第 {current_idx + 1} 章生成")
+                return
+            full_output += token
+            if wf.get("show_cn_labels"):
+                display_text = translate_yaml_keys(full_output)
+            else:
+                display_text = full_output
+            output_placeholder.code(display_text, language="yaml")
 
-        wf["current_yaml"] = yaml_output
+        wf["current_yaml"] = full_output
+
+        yaml_mgr = YAMLManager()
+        errors = yaml_mgr.validate_yaml_text(full_output)
         wf["current_errors"] = errors
 
-        summary = generator.extract_summary(yaml_output)
+        summary = generator.extract_summary(full_output)
         wf["previous_summary"] = summary
 
-        wf["edit_history"] = [yaml_output]
+        wf["edit_history"] = [full_output]
 
         status_placeholder.success(f"第 {current_idx + 1}/{total} 章生成完成")
 
@@ -384,15 +676,40 @@ def render_left_panel(wf, chapter_queue, current_idx, total_chapters):
             for e in errors:
                 st.markdown(f"- {e}")
 
+    cn_label_toggle = st.checkbox(
+        "显示中文字段标签",
+        value=wf.get("show_cn_labels", False),
+        key="cn_label_toggle",
+        help="在 YAML 编辑器中显示中文字段名（如：标题（title）:）",
+    )
+    wf["show_cn_labels"] = cn_label_toggle
+
+    with st.expander("📖 YAML 字段中英文对照", expanded=False):
+        cols = st.columns(2)
+        items = list(YAML_FIELD_LABELS_CN.items())
+        mid = len(items) // 2
+        for col_idx, item_slice in enumerate([items[:mid], items[mid:]]):
+            with cols[col_idx]:
+                for eng, cn in item_slice:
+                    st.markdown(f"- `{eng}` → **{cn}**")
+
+    current_yaml = wf.get("current_yaml", "")
+    if cn_label_toggle and current_yaml:
+        display_yaml = translate_yaml_keys(current_yaml)
+    else:
+        display_yaml = current_yaml
+
     edited_yaml = st.text_area(
         "剧本内容（可直接编辑）",
-        value=wf.get("current_yaml", ""),
+        value=display_yaml,
         height=600,
         key="yaml_editor",
         label_visibility="collapsed",
     )
 
-    if edited_yaml != wf.get("current_yaml", ""):
+    if cn_label_toggle and edited_yaml != display_yaml:
+        pass
+    elif edited_yaml != wf.get("current_yaml", ""):
         wf["current_yaml"] = edited_yaml
 
 
@@ -452,7 +769,7 @@ def render_right_panel(wf):
 def render_bottom_bar(wf, chapter_queue, current_idx, total_chapters):
     st.markdown("---")
 
-    col_undo, col_confirm, col_export = st.columns([1, 1, 1])
+    col_undo, col_cancel, col_confirm, col_export = st.columns([1, 1, 1, 1])
 
     with col_undo:
         hist = wf.get("edit_history", [])
@@ -463,6 +780,11 @@ def render_bottom_bar(wf, chapter_queue, current_idx, total_chapters):
             wf["edit_history"] = hist
             st.rerun()
 
+    with col_cancel:
+        if st.button("⏹️ 取消生成", use_container_width=True):
+            wf["cancel_requested"] = True
+            st.rerun()
+
     with col_confirm:
         if st.button("✅ 确认本章", type="primary", use_container_width=True):
             wf["confirmed_yaml_pieces"].append(wf["current_yaml"])
@@ -471,6 +793,7 @@ def render_bottom_bar(wf, chapter_queue, current_idx, total_chapters):
             wf["edit_history"] = []
             wf["ai_chat_history"] = []
             wf["editor_messages"] = []
+            wf["cancel_requested"] = False
             wf["current_chapter_idx"] = current_idx + 1
             st.rerun()
 
@@ -575,7 +898,7 @@ def render_page_generating():
     if not wf.get("current_yaml") and current_idx < total_chapters:
         generate_current_chapter(wf, chapter_queue, current_idx)
 
-    st.title("🎬 剧本生成与编辑")
+    st.title("🎬 第三步：剧本生成")
 
     progress = confirmed_count / total_chapters
     st.progress(progress, text=f"进度：{confirmed_count}/{total_chapters} 章已确认")
@@ -600,6 +923,10 @@ def main():
         render_page_upload()
     elif stage == "extracting":
         render_page_extracting()
+    elif stage == "character_confirm":
+        render_page_character_confirm()
+    elif stage == "character_detail_confirm":
+        render_page_character_detail_confirm()
     elif stage == "generating":
         render_page_generating()
     else:

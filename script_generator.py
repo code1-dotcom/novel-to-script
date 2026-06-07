@@ -2,9 +2,11 @@
 逐章调用 AI，将小说正文转换为 YAML 剧本片段。
 对 AI 输出的 YAML 做基本校验，解析失败时自动重试（最多 2 次），
 在 prompt 中追加错误信息。
+支持流式输出。
 """
 
 import logging
+from typing import Generator
 
 from bailian_client import BailianClient, BailianAPIError
 from prompt_templates import PROMPTS
@@ -111,6 +113,48 @@ class ScriptGenerator:
             f"第 {chapter_index} 章剧本生成失败，"
             f"{MAX_GENERATION_RETRIES + 1} 次尝试后仍未获得有效输出"
         )
+
+    def generate_chapter_script_stream(
+        self,
+        chapter_content: str,
+        chapter_index: int,
+        chapter_title: str,
+        characters: dict,
+        previous_summary: str = "",
+    ) -> Generator[str, None, None]:
+        """
+        流式生成单章剧本 YAML，逐 token 输出。
+
+        参数:
+            chapter_content: 章节正文内容
+            chapter_index: 章节序号（从 1 开始）
+            chapter_title: 章节标题
+            characters: 角色表 dict
+            previous_summary: 上一章剧情摘要
+
+        Yields:
+            每次 yield 一段文本增量
+        """
+        character_profiles_text = self._format_characters_for_prompt(characters)
+
+        prompt = PROMPTS["script_generation"].format(
+            character_profiles=character_profiles_text,
+            previous_summary=previous_summary if previous_summary else "（无）",
+            chapter_index=chapter_index,
+            chapter_title=chapter_title,
+            chapter_content=chapter_content,
+        )
+
+        messages = [{"role": "user", "content": prompt}]
+
+        logger.info("开始流式生成第 %d 章剧本", chapter_index)
+        yield from self.client.chat_stream(
+            model=config.MODEL_PRIMARY,
+            messages=messages,
+            temperature=config.TEMPERATURE_SCRIPT,
+            max_tokens=config.MAX_TOKENS_SCRIPT,
+        )
+        logger.info("第 %d 章流式生成完成", chapter_index)
 
     def generate_chapter_script_with_errors(
         self,

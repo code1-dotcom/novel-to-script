@@ -1,6 +1,7 @@
 """bailian_client.py — 百炼 API 客户端封装
 封装百炼平台 OpenAI 兼容 API 的调用逻辑，提供统一调用接口。
 支持指数退避重试、超时异常处理和结构化 JSON 输出。
+支持流式输出（stream=True）。
 
 重试策略：使用有界 for 循环（最多 config.MAX_RETRIES=3 次），
 采用指数退避（1s, 2s, 4s），无 while True 或递归重试逻辑。
@@ -9,6 +10,7 @@
 import time
 import json
 import logging
+from typing import Generator
 from openai import OpenAI
 
 import config
@@ -103,7 +105,6 @@ class BailianClient:
                 last_error = e
                 error_str = str(e).lower()
 
-                # 判断错误类型
                 if "timeout" in error_str or "timed out" in error_str:
                     logger.warning("API 超时 [%s] 第 %d 次尝试: %s", model, attempt + 1, e)
                 elif "rate" in error_str or "429" in error_str or "limit" in error_str:
@@ -111,13 +112,11 @@ class BailianClient:
                 else:
                     logger.warning("API 错误 [%s] 第 %d 次尝试: %s", model, attempt + 1, e)
 
-                # 如果不是最后一次尝试，等待后重试（指数退避）
                 if attempt < self.max_retries - 1:
-                    wait_time = 2 ** attempt  # 1s, 2s, 4s
+                    wait_time = 2 ** attempt
                     logger.info("等待 %.1f 秒后重试...", wait_time)
                     time.sleep(wait_time)
 
-        # 所有重试均失败，抛出对应异常
         error_str = str(last_error).lower()
         if "timeout" in error_str or "timed out" in error_str:
             raise BailianTimeoutError(
@@ -132,6 +131,78 @@ class BailianClient:
         else:
             raise BailianAPIError(
                 f"API 调用失败，已重试 {self.max_retries} 次: {last_error}",
+                original_error=last_error,
+            )
+
+    def chat_stream(
+        self,
+        model: str,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> Generator[str, None, None]:
+        """
+        流式调用接口，逐块返回生成文本。
+
+        参数:
+            model: 模型名称
+            messages: OpenAI 格式的消息列表
+            temperature: 生成温度 (0.0 ~ 2.0)
+            max_tokens: 最大生成 token 数
+
+        Yields:
+            每次 yield 一段文本增量
+
+        异常:
+            BailianTimeoutError: 调用超时
+            BailianRateLimitError: API 限流
+            BailianAPIError: 其他 API 错误
+        """
+        last_error = None
+
+        for attempt in range(self.max_retries):
+            try:
+                logger.info(
+                    "Stream API 调用 [%s] 第 %d/%d 次尝试",
+                    model, attempt + 1, self.max_retries,
+                )
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True,
+                )
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+                logger.info("Stream API 调用 [%s] 完成", model)
+                return
+
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                logger.warning("Stream API 错误 [%s] 第 %d 次尝试: %s", model, attempt + 1, e)
+
+                if attempt < self.max_retries - 1:
+                    wait_time = 2 ** attempt
+                    logger.info("等待 %.1f 秒后重试...", wait_time)
+                    time.sleep(wait_time)
+
+        error_str = str(last_error).lower()
+        if "timeout" in error_str or "timed out" in error_str:
+            raise BailianTimeoutError(
+                f"流式 API 调用超时，已重试 {self.max_retries} 次: {last_error}",
+                original_error=last_error,
+            )
+        elif "rate" in error_str or "429" in error_str or "limit" in error_str:
+            raise BailianRateLimitError(
+                f"流式 API 限流，已重试 {self.max_retries} 次: {last_error}",
+                original_error=last_error,
+            )
+        else:
+            raise BailianAPIError(
+                f"流式 API 调用失败，已重试 {self.max_retries} 次: {last_error}",
                 original_error=last_error,
             )
 
@@ -164,7 +235,6 @@ class BailianClient:
             max_tokens=max_tokens,
         )
 
-        # 尝试提取 JSON 代码块（模型有时会用 ```json 包裹）
         json_text = raw_text.strip()
 
         if "```json" in json_text:

@@ -1,10 +1,12 @@
 """character_extractor.py — 角色提取模块
 全局扫描小说章节内容，调用 AI 提取角色信息并生成 character_profiles.json。
 支持长文本分批处理与合并去重。
+支持流式进度反馈。
 """
 
 import json
 import logging
+from typing import Generator
 
 from bailian_client import BailianClient, BailianAPIError, BailianFormatError
 from prompt_templates import PROMPTS
@@ -73,6 +75,68 @@ class CharacterExtractor:
             return {"characters": merged}
         else:
             return {"characters": all_characters}
+
+    def extract_characters_stream(
+        self, chapters_content: list[str]
+    ) -> Generator[dict, None, None]:
+        """
+        流式提取角色信息，每完成一个分块就 yield 进度更新。
+
+        参数:
+            chapters_content: 各章节的正文内容列表
+
+        Yields:
+            {"type": "progress", "current": int, "total": int, "message": str}
+            {"type": "chunk_result", "characters": list, "chunk_index": int}
+            {"type": "merge_start", "count": int}
+            {"type": "complete", "profiles": dict}
+            {"type": "error", "message": str}
+        """
+        if not chapters_content:
+            yield {"type": "complete", "profiles": {"characters": []}}
+            return
+
+        full_text = "\n\n".join(chapters_content)
+        chunks = self._split_into_chunks(full_text)
+        total_chunks = len(chunks)
+
+        logger.info("开始流式角色提取: 共 %d 个分块", total_chunks)
+
+        all_characters = []
+        for i, chunk in enumerate(chunks):
+            yield {
+                "type": "progress",
+                "current": i + 1,
+                "total": total_chunks,
+                "message": f"正在提取角色 (第 {i + 1}/{total_chunks} 块)...",
+            }
+            try:
+                result = self._extract_from_chunk(chunk)
+                characters = result.get("characters", [])
+                logger.info("第 %d 块提取到 %d 个角色", i + 1, len(characters))
+                all_characters.extend(characters)
+                yield {
+                    "type": "chunk_result",
+                    "characters": characters,
+                    "chunk_index": i,
+                }
+            except (BailianAPIError, BailianFormatError) as e:
+                logger.error("第 %d 块角色提取失败: %s", i + 1, e)
+                yield {"type": "error", "message": f"第 {i + 1} 块提取失败: {e}"}
+                raise
+
+        if total_chunks > 1 and all_characters:
+            yield {
+                "type": "progress",
+                "current": total_chunks,
+                "total": total_chunks,
+                "message": f"正在合并去重 ({len(all_characters)} 个角色)...",
+            }
+            merged = self._merge_characters(all_characters)
+            logger.info("角色合并完成: %d → %d 个角色", len(all_characters), len(merged))
+            yield {"type": "complete", "profiles": {"characters": merged}}
+        else:
+            yield {"type": "complete", "profiles": {"characters": all_characters}}
 
     def save_profiles(self, profiles: dict, output_path: str):
         """

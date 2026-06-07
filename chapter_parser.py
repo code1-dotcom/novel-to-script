@@ -19,7 +19,7 @@ class ChapterParser:
             r"^第[一二三四五六七八九十百千\d]+章[：:\s·.]*(.+)?$",
             r"^Chapter\s+\d+[：:\s]*(.+)?$",
             r"^卷[一二三四五六七八九十百千\d]+[：:\s]*(.+)?$",
-            r"^[一二三四五六七八九十百千\d]+[、.]\s*(.+)$",
+            r"^[一二三四五六七八九十百千\d]+[、.]\s*([\u4e00-\u9fff].*)$",
         ]
         self._compiled_patterns = [re.compile(p) for p in self.patterns]
 
